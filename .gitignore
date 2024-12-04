@@ -1,0 +1,39 @@
+# Dependencies
+frontend/node_modules
+frontend/.pnp
+frontend/.pnp.js
+
+# Production & Build outputs
+frontend/dist
+frontend/dist-electron
+frontend/build
+*.dmg
+*.zip
+*.app
+**/dist_electron
+**/build
+
+# Debug
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Editor
+.vscode
+.idea
+frontend/*.swp
+frontend/*.swo
+
+# OS
+frontend/.DS_Store
+frontend/Thumbs.db
+
+# Python
+backend/venv

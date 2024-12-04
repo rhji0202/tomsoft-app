@@ -1,0 +1,24 @@
+{
+  "appId": "com.example.signup-app",
+  "productName": "회원가입 앱",
+  "directories": {
+    "output": "release/"
+  },
+  "files": ["dist/**/*", "electron/**/*"],
+  "extraResources": [
+    {
+      "from": "../backend",
+      "to": "backend",
+      "filter": ["**/*", "!**/__pycache__", "!**/*.pyc", "!.env"]
+    }
+  ],
+  "mac": {
+    "target": ["dmg"]
+  },
+  "win": {
+    "target": ["nsis"]
+  },
+  "linux": {
+    "target": ["AppImage"]
+  }
+}

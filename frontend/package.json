@@ -1,0 +1,57 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.1.0",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "electron:dev": "cross-env NODE_ENV=development concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "electron:build": "npm run build-backend && vite build && electron-builder",
+    "build-backend": "node scripts/build-backend.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
+    "@mui/material": "^5.13.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.11.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.1",
+    "electron-builder": "^23.6.0",
+    "vite": "^6.0.1",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.tomsoft.app",
+    "productName": "Tomsoft App",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
+  }
+}
