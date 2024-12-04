@@ -5,9 +5,10 @@ import path from "path";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: process.env.NODE_ENV === "production" ? "./" : "/",
+  base: process.env.NODE_ENV === "development" ? "/" : "./",
   build: {
     outDir: "dist",
+    assetsDir: "assets",
     emptyOutDir: true,
   },
   resolve: {
@@ -16,6 +17,9 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 51733,
+  },
+  css: {
+    postcss: "./postcss.config.js",
   },
 });

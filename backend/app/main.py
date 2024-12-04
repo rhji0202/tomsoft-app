@@ -1,23 +1,28 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-# from .routes import auth
-# from .database import engine
-# from . import models
+from fastapi.responses import Response
+import uvicorn
+from app.routes import background
 
-# models.Base.metadata.create_all(bind=engine)
+app = FastAPI()
+app.include_router(background.router)
 
-app = FastAPI(title="회원가입 API")
-
+# CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # React 개발 서버
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# app.include_router(auth.router, prefix="/api/auth", tags=["인증"])
-
 @app.get("/")
-def read_root():
-    return {"message": "회원가입 API에 오신 것을 환영합니다!"} 
+async def root():
+    return {"message": "FastAPI server is running"}
+
+# 직접 실행을 위한 메인 함수 추가
+def main():
+    uvicorn.run(app, host="127.0.0.1", port=58000)
+
+if __name__ == "__main__":
+    main() 

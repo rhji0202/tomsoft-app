@@ -35,5 +35,10 @@ frontend/*.swo
 frontend/.DS_Store
 frontend/Thumbs.db
 
+# release
+frontend/release
+
 # Python
 backend/venv
+backend/__pycache__
+backend/dist

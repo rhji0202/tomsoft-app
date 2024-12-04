@@ -1,24 +1,20 @@
 {
-  "appId": "com.example.signup-app",
-  "productName": "회원가입 앱",
-  "directories": {
-    "output": "release/"
-  },
+  "appId": "com.theonemind.id",
+  "productName": "TheOneMindUtility",
   "files": ["dist/**/*", "electron/**/*"],
   "extraResources": [
     {
-      "from": "../backend",
-      "to": "backend",
-      "filter": ["**/*", "!**/__pycache__", "!**/*.pyc", "!.env"]
+      "from": "../backend/dist/fastapi_server.exe",
+      "to": "fastapi_server.exe"
     }
   ],
-  "mac": {
-    "target": ["dmg"]
+  "directories": {
+    "output": "release"
   },
   "win": {
-    "target": ["nsis"]
+    "target": "nsis"
   },
-  "linux": {
-    "target": ["AppImage"]
+  "mac": {
+    "target": "dmg"
   }
 }

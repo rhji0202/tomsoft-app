@@ -1,20 +1,20 @@
 {
-  "name": "frontend",
+  "name": "TheOneMindUtility",
   "private": true,
   "version": "0.1.0",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 51733",
     "build": "vite build",
-    "electron:dev": "cross-env NODE_ENV=development concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
-    "electron:build": "npm run build-backend && vite build && electron-builder",
-    "build-backend": "node scripts/build-backend.js",
-    "preview": "vite preview"
+    "electron:dev": "cross-env NODE_ENV=development concurrently \"vite --port 51733\" \"wait-on tcp:51733 && electron .\"",
+    "electron:build": "vite build && electron-builder",
+    "preview": "vite preview --port 51733"
   },
   "dependencies": {
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
     "@mui/material": "^5.13.0",
+    "lucide-react": "^0.464.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.11.1"
@@ -24,34 +24,14 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",
     "electron": "^33.2.1",
     "electron-builder": "^23.6.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
     "vite": "^6.0.1",
     "wait-on": "^8.0.1"
-  },
-  "build": {
-    "appId": "com.tomsoft.app",
-    "productName": "Tomsoft App",
-    "directories": {
-      "output": "dist_electron"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*"
-    ],
-    "mac": {
-      "category": "public.app-category.utilities"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ]
-    }
   }
 }
