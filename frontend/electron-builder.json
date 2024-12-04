@@ -21,12 +21,6 @@
     "target": "nsis"
   },
   "mac": {
-    "target": "dmg",
-    "extraFiles": [
-      {
-        "from": "../backend/dist/fastapi_server",
-        "to": "Contents/MacOS/fastapi_server"
-      }
-    ]
+    "target": "dmg"
   }
 }
