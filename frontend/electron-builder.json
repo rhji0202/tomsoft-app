@@ -5,7 +5,13 @@
   "extraResources": [
     {
       "from": "../backend/dist/fastapi_server.exe",
-      "to": "fastapi_server.exe"
+      "to": "fastapi_server.exe",
+      "filter": ["!**/.*"]
+    },
+    {
+      "from": "../backend/dist/fastapi_server",
+      "to": "fastapi_server",
+      "filter": ["!**/.*"]
     }
   ],
   "directories": {
@@ -15,6 +21,12 @@
     "target": "nsis"
   },
   "mac": {
-    "target": "dmg"
+    "target": "dmg",
+    "extraFiles": [
+      {
+        "from": "../backend/dist/fastapi_server",
+        "to": "Contents/MacOS/fastapi_server"
+      }
+    ]
   }
 }

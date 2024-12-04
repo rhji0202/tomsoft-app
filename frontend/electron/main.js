@@ -15,6 +15,12 @@ function createWindow() {
     },
   });
 
+  // 창 닫기 이벤트 처리 추가
+  //   win.on("close", (event) => {
+  //     event.preventDefault();
+  //     win.minimize();
+  //   });
+
   // 개발 모드에서는 localhost:51733, 프로덕션에서는 dist/index.html 로드
   if (process.env.NODE_ENV === "development") {
     win.loadURL("http://localhost:51733");
@@ -64,11 +70,41 @@ async function startBackendServer() {
   // 기존 프로세스 정리
   await killProcessByPort(58000);
 
-  const executablePath = path.join(process.resourcesPath, "fastapi_server.exe");
+  // 운영체제별 실행 파일 경로 설정
+  const executableName =
+    process.platform === "win32" ? "fastapi_server.exe" : "fastapi_server";
 
-  backendProcess = spawn(executablePath, [], {
+  const executablePath = path.join(process.resourcesPath, executableName);
+
+  // 운영체제별 실행 옵션 설정
+  const spawnOptions = {
     windowsHide: true, // 윈도우에서 콘솔 창 숨기기
+    ...(process.platform !== "win32" && {
+      // macOS/Linux에서 추가 옵션
+      chmod: true,
+      env: {
+        ...process.env,
+        PATH: `/usr/local/bin:${process.env.PATH}`, // macOS에서 필요한 PATH 설정
+      },
+    }),
+  };
+
+  // macOS/Linux에서 실행 권한 부여
+  //   if (process.platform !== "win32") {
+  //     await new Promise((resolve) => {
+  //       exec(`chmod +x "${executablePath}"`, (error) => {
+  //         if (error) console.error("chmod error:", error);
+  //         resolve();
+  //       });
+  //     });
+  //   }
+
+  console.log("Starting backend server...", {
+    executablePath,
+    platform: process.platform,
   });
+
+  backendProcess = spawn(executablePath, [], spawnOptions);
 
   backendProcess.stdout.on("data", (data) => {
     console.log(`Backend stdout: ${data}`);
@@ -76,6 +112,10 @@ async function startBackendServer() {
 
   backendProcess.stderr.on("data", (data) => {
     console.error(`Backend stderr: ${data}`);
+  });
+
+  backendProcess.on("error", (error) => {
+    console.error("Failed to start backend process:", error);
   });
 
   backendProcess.on("close", (code) => {

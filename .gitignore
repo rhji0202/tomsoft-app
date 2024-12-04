@@ -40,5 +40,7 @@ frontend/release
 
 # Python
 backend/venv
-backend/__pycache__
+**/__pycache__/
+*.py[cod]
+
 backend/dist

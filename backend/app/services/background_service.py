@@ -7,7 +7,7 @@ from PIL import Image
 import io
 
 # 세션 초기화
-session = new_session("birefnet-general", providers=['CPUExecutionProvider'])
+session = new_session("birefnet-general")
 
 # 최대 이미지 크기 설정
 MAX_IMAGE_SIZE = 2000  # 픽셀 단위

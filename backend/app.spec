@@ -5,7 +5,10 @@ block_cipher = None
 a = Analysis(
     ['app/main.py'],
     pathex=[],
-    binaries=[],
+    binaries=[
+        ('/opt/homebrew/opt/openssl@3/lib/libssl.dylib', '.'),
+        ('/opt/homebrew/opt/openssl@3/lib/libcrypto.dylib', '.')
+    ],
     datas=[],
     hiddenimports=['uvicorn.logging', 'uvicorn.protocols', 'uvicorn.lifespan.on', 'uvicorn.lifespan.off', 'fastapi'],
     hookspath=[],
