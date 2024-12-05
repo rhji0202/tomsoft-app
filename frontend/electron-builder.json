@@ -1,16 +1,12 @@
 {
   "appId": "com.theonemind.id",
   "productName": "TheOneMindUtility",
+  "icon": "src/assets/logo.png",
   "files": ["dist/**/*", "electron/**/*"],
   "extraResources": [
     {
-      "from": "../backend/dist/fastapi_server.exe",
-      "to": "fastapi_server.exe",
-      "filter": ["!**/.*"]
-    },
-    {
-      "from": "../backend/dist/fastapi_server",
-      "to": "fastapi_server",
+      "from": "../backend/dist",
+      "to": "./",
       "filter": ["!**/.*"]
     }
   ],
@@ -18,7 +14,8 @@
     "output": "release"
   },
   "win": {
-    "target": "nsis"
+    "target": "nsis",
+    "icon": "src/assets/logo.png"
   },
   "mac": {
     "target": "dmg"

@@ -2,7 +2,6 @@ import httpx
 import base64
 from rembg import remove
 from rembg.session_factory import new_session
-from fastapi import HTTPException
 from PIL import Image
 import io
 import sys
