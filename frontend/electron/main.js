@@ -1,5 +1,8 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
+const https = require("https");
+const fs = require("fs");
+const os = require("os");
 let backendProcess = null;
 
 function startExpressServer() {
@@ -7,20 +10,13 @@ function startExpressServer() {
 }
 
 function createWindow() {
-  const { screen } = require("electron");
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } =
-    primaryDisplay.workAreaSize;
-
   const win = new BrowserWindow({
     width: 400,
-    height: 40,
-    x: screenWidth - 400, // 화면 오른쪽에 위치
-    y: screenHeight - 40, // 화면 하단에 위치
+    height: 400,
     frame: false,
     titleBarStyle: "hidden",
     resizable: false,
-    alwaysOnTop: true, // 항상 최상위에 표시
+    alwaysOnTop: true,
     icon: path.join(__dirname, "../src/assets/logo.png"),
     webPreferences: {
       nodeIntegration: true,
@@ -30,11 +26,11 @@ function createWindow() {
   });
 
   // 개발 모드에서는 localhost:51733, 프로덕션에서는 dist/index.html 로드
-  if (process.env.NODE_ENV === "development") {
-    win.loadURL("http://localhost:51733");
-  } else {
-    win.loadFile(path.join(__dirname, "../dist/index.html"));
-  }
+  //   if (process.env.NODE_ENV === "development") {
+  win.loadURL("http://localhost:51733");
+  //   } else {
+  //     win.loadFile(path.join(__dirname, "../dist/index.html"));
+  //   }
 
   // 백엔드 서버 시작
   startExpressServer();
@@ -46,16 +42,136 @@ function createWindow() {
   ipcMain.handle("close-window", () => {
     win.close();
   });
+
+  if (process.env.NODE_ENV === "development") {
+    win.webContents.openDevTools();
+  }
 }
+
+ipcMain.handle("download-model", async (event) => {
+  const url =
+    "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx";
+
+  // OS별 모델 저장 경로 설정
+  const homeDir = os.homedir();
+  const modelDir = path.join(homeDir, ".u2net");
+  const modelPath = path.join(modelDir, "birefnet-general.onnx");
+
+  // .u2net 디렉토리가 없으면 생성
+  if (!fs.existsSync(modelDir)) {
+    fs.mkdirSync(modelDir, { recursive: true });
+  }
+
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(modelPath);
+    let receivedBytes = 0;
+
+    const request = https.get(
+      url,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+      },
+      (response) => {
+        // 리다이렉트 처리
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          https
+            .get(
+              response.headers.location,
+              {
+                headers: {
+                  "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                },
+              },
+              (redirectResponse) => {
+                const totalBytes = parseInt(
+                  redirectResponse.headers["content-length"],
+                  10
+                );
+
+                redirectResponse.on("data", (chunk) => {
+                  receivedBytes += chunk.length;
+                  const percentage = (receivedBytes / totalBytes) * 100;
+                  const progress = Math.max(1, Math.round(percentage));
+
+                  // console.log("Sending progress from main:", {
+                  //   receivedBytes,
+                  //   totalBytes,
+                  //   percentage: percentage.toFixed(2),
+                  //   progress,
+                  //   calculation: `(${receivedBytes} / ${totalBytes}) * 100 = ${percentage.toFixed(
+                  //     2
+                  //   )}% → ${progress}%`,
+                  // });
+
+                  event.sender.send("download-progress", progress);
+                  file.write(chunk);
+                });
+
+                redirectResponse.on("end", () => {
+                  file.end();
+                  resolve({ success: true });
+                });
+              }
+            )
+            .on("error", (err) => {
+              file.end();
+              fs.unlink(modelPath, () => {});
+              reject(err);
+            });
+        } else {
+          const totalBytes = parseInt(response.headers["content-length"], 10);
+
+          response.on("data", (chunk) => {
+            receivedBytes += chunk.length;
+            const percentage = (receivedBytes / totalBytes) * 100;
+            const progress = Math.max(1, Math.round(percentage));
+
+            // console.log("Sending progress from main:", {
+            //   receivedBytes,
+            //   totalBytes,
+            //   percentage: percentage.toFixed(2),
+            //   progress,
+            //   calculation: `(${receivedBytes} / ${totalBytes}) * 100 = ${percentage.toFixed(
+            //     2
+            //   )}% → ${progress}%`,
+            // });
+
+            event.sender.send("download-progress", progress);
+            file.write(chunk);
+          });
+
+          response.on("end", () => {
+            file.end();
+            resolve({ success: true });
+          });
+        }
+      }
+    );
+
+    request.on("error", (err) => {
+      file.end();
+      fs.unlink(modelPath, () => {});
+      reject(err);
+    });
+  });
+});
+
+ipcMain.handle("check-model", async () => {
+  const homeDir = os.homedir();
+  const modelPath = path.join(homeDir, ".u2net", "birefnet-general.onnx");
+  return fs.existsSync(modelPath);
+});
 
 app.whenReady().then(createWindow);
 
-app.on("window-all-closed", async () => {
-  // 백엔드 프로세스 종료
+app.on("window-all-closed", () => {
   if (backendProcess) {
     backendProcess.kill();
   }
-
   if (process.platform !== "darwin") {
     app.quit();
   }
@@ -67,8 +183,7 @@ app.on("activate", () => {
   }
 });
 
-// 앱 종료 시 백엔드 프로세스도 종료
-app.on("before-quit", async () => {
+app.on("before-quit", () => {
   if (backendProcess) {
     backendProcess.kill();
   }

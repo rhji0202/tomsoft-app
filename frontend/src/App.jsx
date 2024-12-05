@@ -1,102 +1,130 @@
-import React, { useState, useEffect } from 'react';
-import { Minus, X } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { ModelDownloader } from "./components/ModelDownloader";
+import { ModelInstalled } from "./components/ModelInstalled";
 
 function App() {
-  const [serverStatus, setServerStatus] = useState('checking');
-  const [processStatus, setProcessStatus] = useState('idle'); // 'idle', 'processing', 'completed', 'error'
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [modelExists, setModelExists] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState("idle"); // 'idle', 'processing', 'completed', 'error'
 
   useEffect(() => {
-    const checkServerStatus = async () => {
-      try {
-        const response = await fetch('http://localhost:58000/status');
-        if (response.ok) {
-          setServerStatus('online');
-        } else {
-          setServerStatus('offline');
-        }
-      } catch (error) {
-        setServerStatus('offline');
-      }
+    const checkModelStatus = async () => {
+      const exists = await window.electron.invoke("check-model");
+      setModelExists(exists);
     };
-
-    checkServerStatus();
-    const interval = setInterval(checkServerStatus, 3000);
 
     // SSE 연결 설정
-    const eventSource = new EventSource('http://localhost:58000/status-events');
-    
+    const eventSource = new EventSource("http://localhost:58000/status-events");
     eventSource.onmessage = (event) => {
-      const { status } = JSON.parse(event.data);
-      setProcessStatus(status);
-      
-      if (status === 'completed' || status === 'error') {
-        // 3초 후 상태 초기화
-        setTimeout(() => setProcessStatus('idle'), 3000);
-      }
+      const data = JSON.parse(event.data);
+      setProcessingStatus(data.status);
     };
 
+    checkModelStatus();
+
     return () => {
-      clearInterval(interval);
       eventSource.close();
     };
   }, []);
 
-  const handleMinimize = () => {
-    window.electron.minimize();
-  };
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      setDownloadProgress(0);
 
-  const handleClose = () => {
-    window.electron.close();
-  };
+      console.log("다운로드 시작");
 
-  const getStatusText = () => {
-    if (serverStatus === 'offline') return '서버 오프라인';
-    switch (processStatus) {
-      case 'processing':
-        return '처리중...';
-      case 'completed':
-        return '처리완료';
-      case 'error':
-        return '처리실패';
-      default:
-        return '대기중';
+      // 다운로드 진행 상태를 모니터링하는 이벤트 리스너
+      const progressHandler = (progress) => {
+        console.log("Download progress in handler:", progress);
+        setDownloadProgress(Number(progress));
+      };
+
+      const subscription = window.electron.on(
+        "download-progress",
+        progressHandler
+      );
+
+      await window.electron.invoke("download-model");
+
+      console.log("다운로드 완료");
+      window.electron.removeListener("download-progress", subscription);
+      setIsDownloading(false);
+      setModelExists(true);
+    } catch (error) {
+      console.error("다운로드 실패:", error);
+      setIsDownloading(false);
+      setDownloadProgress(0);
     }
   };
 
-  const getStatusColor = () => {
-    if (serverStatus === 'offline') return 'bg-red-600';
-    switch (processStatus) {
-      case 'processing':
-        return 'bg-yellow-600';
-      case 'completed':
-        return 'bg-green-600';
-      case 'error':
-        return 'bg-red-600';
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "processing":
+        return "bg-yellow-500";
+      case "completed":
+        return "bg-green-500";
+      case "error":
+        return "bg-red-500";
       default:
-        return 'bg-green-600';
+        return "bg-gray-500";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "processing":
+        return "배경 제거 처리중";
+      case "completed":
+        return "처리 완료";
+      case "error":
+        return "처리 실패";
+      default:
+        return "대기중";
     }
   };
 
   return (
-    <div className="border-t border-gray-200 overflow-hidden h-[40px]" style={{ WebkitAppRegion: 'drag' }}>
-      <div className="flex items-center justify-between h-full">
-        <div className="flex items-center gap-2 text-gray-600 p-2">
-          <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
-          <span className="text-sm font-semibold">{getStatusText()}</span>
-        </div>
-        <div className="flex h-full" style={{ WebkitAppRegion: 'no-drag' }}>
-          <button 
-            onClick={handleMinimize}
-            className="px-4 h-full hover:bg-gray-200 flex items-center justify-center transition-colors"
-          >
-            <Minus size={18} />
-          </button>
-          <button 
-            onClick={handleClose}
-            className="px-4 h-full hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"
-          >
-            <X size={18} />
-          </button>
+    <div
+      className="flex flex-col items-center justify-center min-h-screen bg-gray-100"
+      style={{ WebkitAppRegion: "drag" }}
+    >
+      <div className="bg-white p-8 rounded-lg shadow-md w-96">
+        <h1 className="text-2xl font-bold text-center mb-6">모델 다운로드</h1>
+
+        {modelExists ? (
+          <ModelInstalled />
+        ) : (
+          <ModelDownloader
+            onDownload={handleDownload}
+            isDownloading={isDownloading}
+            progress={downloadProgress}
+          />
+        )}
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
+        <div className="flex items-center justify-between max-w-screen-lg mx-auto">
+          <div className="flex items-center gap-4">
+            {/* 처리 상태 */}
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-2 h-2 rounded-full ${getStatusColor(
+                  processingStatus
+                )}`}
+              />
+              <span className="text-sm text-gray-600">
+                {getStatusText(processingStatus)}
+              </span>
+            </div>
+          </div>
+
+          <span className="text-xs text-gray-500">
+            {modelExists
+              ? "~/.u2net/birefnet-general.onnx"
+              : "모델을 다운로드 해주세요"}
+          </span>
         </div>
       </div>
     </div>

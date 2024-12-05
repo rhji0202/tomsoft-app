@@ -35,12 +35,22 @@ app.post("/remove-bg", async (req, res) => {
   try {
     app.emit("processing-status", "processing");
 
-    const exePath =
-      process.env.NODE_ENV === "development"
-        ? path.join(__dirname, "../../backend/dist/background_remover.exe")
-        : path.join(process.resourcesPath, "background_remover.exe");
+    let executablePath;
+    if (process.platform === "darwin") {
+      // macOS
+      executablePath =
+        process.env.NODE_ENV === "development"
+          ? path.join(__dirname, "../../backend/dist/background_remover")
+          : path.join(process.resourcesPath, "background_remover");
+    } else {
+      // Windows
+      executablePath =
+        process.env.NODE_ENV === "development"
+          ? path.join(__dirname, "../../backend/dist/background_remover.exe")
+          : path.join(process.resourcesPath, "background_remover.exe");
+    }
 
-    const removeBg = spawn(exePath, [image_url], {
+    const removeBg = spawn(executablePath, [image_url], {
       stdio: ["pipe", "pipe", "pipe"],
     });
 
