@@ -26,11 +26,11 @@ function createWindow() {
   });
 
   // 개발 모드에서는 localhost:51733, 프로덕션에서는 dist/index.html 로드
-  //   if (process.env.NODE_ENV === "development") {
-  win.loadURL("http://localhost:51733");
-  //   } else {
-  //     win.loadFile(path.join(__dirname, "../dist/index.html"));
-  //   }
+  if (process.env.NODE_ENV === "development") {
+    win.loadURL("http://localhost:51733");
+  } else {
+    win.loadFile(path.join(__dirname, "../dist/index.html"));
+  }
 
   // 백엔드 서버 시작
   startExpressServer();
@@ -49,13 +49,15 @@ function createWindow() {
 }
 
 ipcMain.handle("download-model", async (event) => {
-  const url =
+  const modelName = process.env.VITE_MODEL_NAME || "birefnet-general";
+  const modelUrl =
+    process.env.VITE_MODEL_URL ||
     "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx";
 
   // OS별 모델 저장 경로 설정
   const homeDir = os.homedir();
   const modelDir = path.join(homeDir, ".u2net");
-  const modelPath = path.join(modelDir, "birefnet-general.onnx");
+  const modelPath = path.join(modelDir, `${modelName}.onnx`);
 
   // .u2net 디렉토리가 없으면 생성
   if (!fs.existsSync(modelDir)) {
@@ -67,7 +69,7 @@ ipcMain.handle("download-model", async (event) => {
     let receivedBytes = 0;
 
     const request = https.get(
-      url,
+      modelUrl,
       {
         headers: {
           "User-Agent":
@@ -161,8 +163,9 @@ ipcMain.handle("download-model", async (event) => {
 });
 
 ipcMain.handle("check-model", async () => {
+  const modelName = process.env.VITE_MODEL_NAME || "birefnet-general";
   const homeDir = os.homedir();
-  const modelPath = path.join(homeDir, ".u2net", "birefnet-general.onnx");
+  const modelPath = path.join(homeDir, ".u2net", `${modelName}.onnx`);
   return fs.existsSync(modelPath);
 });
 
