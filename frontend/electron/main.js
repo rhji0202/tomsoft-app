@@ -122,7 +122,10 @@ ipcMain.handle("download-model", async (event) => {
             .on("error", (err) => {
               file.end();
               fs.unlink(modelPath, () => {});
-              reject(err);
+              reject({
+                success: false,
+                error: err.message || "다운로드 중 오류가 발생했습니다.",
+              });
             });
         } else {
           const totalBytes = parseInt(response.headers["content-length"], 10);
@@ -157,7 +160,10 @@ ipcMain.handle("download-model", async (event) => {
     request.on("error", (err) => {
       file.end();
       fs.unlink(modelPath, () => {});
-      reject(err);
+      reject({
+        success: false,
+        error: err.message || "다운로드 중 오류가 발생했습니다.",
+      });
     });
   });
 });

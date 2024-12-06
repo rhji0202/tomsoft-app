@@ -38,20 +38,23 @@ const getProcessTypeText = (type) => {
 };
 
 const ProcessStatusList = ({ processes }) => {
+  const latestProcess = Array.from(processes.values())
+    .sort((a, b) => b.timestamp - a.timestamp)[0];
+
   return (
     <div className="flex flex-col gap-2">
-      {Array.from(processes.values()).map((process) => (
-        <div key={process.processId} className="flex items-center gap-2">
+      {latestProcess && (
+        <div key={latestProcess.processId} className="flex items-center gap-2">
           <div
-            className={`w-2 h-2 rounded-full ${getStatusColor(process.status)}`}
+            className={`w-2 h-2 rounded-full ${getStatusColor(latestProcess.status)}`}
           />
           <span className="text-sm text-gray-600">
-            {`${getProcessTypeText(process.type)}: ${getStatusText(
-              process.status
+            {`${getProcessTypeText(latestProcess.type)}: ${getStatusText(
+              latestProcess.status
             )}`}
           </span>
         </div>
-      ))}
+      )}
     </div>
   );
 };

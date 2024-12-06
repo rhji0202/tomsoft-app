@@ -39,7 +39,7 @@ app.post("/remove-bg", async (req, res) => {
   }
 
   try {
-    const process = processManager.createProcess(processId, "remove-bg");
+    const processInfo = processManager.createProcess(processId, "remove-bg");
 
     const updateStatus = (status) => {
       if (processManager.getProcess(processId)) {
@@ -56,15 +56,17 @@ app.post("/remove-bg", async (req, res) => {
 
     let executablePath;
     if (process.platform === "darwin") {
-      executablePath = path.join(
-        __dirname,
-        "../../backend/dist/background_remover"
-      );
+      // macOS
+      executablePath =
+        process.env.NODE_ENV === "development"
+          ? path.join(__dirname, "../../backend/dist/background_remover")
+          : path.join(process.resourcesPath, "background_remover");
     } else {
-      executablePath = path.join(
-        __dirname,
-        "../../backend/dist/background_remover.exe"
-      );
+      // Windows
+      executablePath =
+        process.env.NODE_ENV === "development"
+          ? path.join(__dirname, "../../backend/dist/background_remover.exe")
+          : path.join(process.resourcesPath, "background_remover.exe");
     }
 
     if (!require("fs").existsSync(executablePath)) {
