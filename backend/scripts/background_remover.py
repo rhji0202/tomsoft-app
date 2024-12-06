@@ -11,13 +11,27 @@ import requests
 import certifi
 from urllib.parse import urlparse
 from utils.logger import setup_logging
+import logging
 
 # SSL 인증서 설정
 os.environ['SSL_CERT_FILE'] = certifi.where()
 os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
 
-# 로거 초기화
-logger = setup_logging('background_remover')
+def setup_logger(process_id: str = None):
+    logger = setup_logging('background_remover')
+    if process_id:
+        # 프로세스 ID를 로거에 추가하는 필터 생성
+        class ProcessIdFilter(logging.Filter):
+            def filter(self, record):
+                record.process_id = process_id
+                return True
+        
+        logger.addFilter(ProcessIdFilter())
+        # 로그 포맷 수정
+        for handler in logger.handlers:
+            formatter = logging.Formatter('%(asctime)s - %(name)s - [ProcessID: %(process_id)s] - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+    return logger
 
 def download_image(image_url: str) -> str:
     try:
@@ -120,13 +134,17 @@ def remove_background(image_path: str) -> str:
                 logger.error(f"Failed to delete temporary file: {str(e)}")
 
 if __name__ == "__main__":
-    logger.info(f"Program started. Arguments: {sys.argv}")
-    if len(sys.argv) != 2:
-        logger.error("Insufficient arguments")
+    if len(sys.argv) < 2:
+        print("Insufficient arguments")
         sys.exit(1)
         
     image_path = sys.argv[1]
-    logger.info(f"Image path: {image_path}")
+    process_id = sys.argv[2] if len(sys.argv) > 2 else None
+    
+    # 프로세스 ID를 포함한 로거 설정
+    logger = setup_logger(process_id)
+    
+    logger.info(f"Program started. Image path: {image_path}")
     result = remove_background(image_path)
     
     if result:

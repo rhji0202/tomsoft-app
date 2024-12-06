@@ -71,7 +71,7 @@ app.post("/remove-bg", async (req, res) => {
       throw new Error(`실행 파일을 찾을 수 없습니다: ${executablePath}`);
     }
 
-    const removeBg = spawn(executablePath, [image_url], {
+    const removeBg = spawn(executablePath, [image_url, processId], {
       stdio: ["pipe", "pipe", "pipe"],
       shell: true,
       cwd: path.dirname(executablePath),
