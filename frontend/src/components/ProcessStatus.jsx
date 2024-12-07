@@ -2,6 +2,8 @@ import React from "react";
 
 const getStatusColor = (status) => {
   switch (status) {
+    case "queued":
+      return "bg-blue-500";
     case "processing":
       return "bg-yellow-500";
     case "completed":
@@ -15,8 +17,8 @@ const getStatusColor = (status) => {
 
 const getStatusText = (status) => {
   switch (status) {
-    case "idle":
-      return "준비중";
+    case "queued":
+      return "대기중";
     case "processing":
       return "처리중";
     case "completed":
@@ -38,15 +40,27 @@ const getProcessTypeText = (type) => {
 };
 
 const ProcessStatusList = ({ processes }) => {
-  const latestProcess = Array.from(processes.values())
-    .sort((a, b) => b.timestamp - a.timestamp)[0];
+  console.log("현재 프로세스 목록:", Array.from(processes.values())); // 디버깅용
+
+  const sortedProcesses = Array.from(processes.values())
+    .filter((process) => process && process.status) // 유효한 프로세스만 필터링
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+  const latestProcess = sortedProcesses[0];
+
+  console.log("최신 프로세스:", latestProcess); // 디버깅용
 
   return (
     <div className="flex flex-col gap-2">
       {latestProcess && (
-        <div key={latestProcess.processId} className="flex items-center gap-2">
+        <div
+          key={latestProcess.processId || latestProcess.id}
+          className="flex items-center gap-2"
+        >
           <div
-            className={`w-2 h-2 rounded-full ${getStatusColor(latestProcess.status)}`}
+            className={`w-2 h-2 rounded-full ${getStatusColor(
+              latestProcess.status
+            )}`}
           />
           <span className="text-sm text-gray-600">
             {`${getProcessTypeText(latestProcess.type)}: ${getStatusText(
@@ -74,4 +88,4 @@ const ProcessStatus = ({ processes }) => {
   );
 };
 
-export default ProcessStatus; 
+export default ProcessStatus;

@@ -7,13 +7,14 @@ contextBridge.exposeInMainWorld("electron", {
       "download-model",
       "minimize-window",
       "close-window",
+      "get-app-version",
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
     }
   },
   on: (channel, callback) => {
-    const validChannels = ["download-progress"];
+    const validChannels = ["download-progress", "processing-status"];
     if (validChannels.includes(channel)) {
       const subscription = (event, ...args) => callback(...args);
       ipcRenderer.on(channel, subscription);
@@ -21,7 +22,7 @@ contextBridge.exposeInMainWorld("electron", {
     }
   },
   removeListener: (channel, subscription) => {
-    const validChannels = ["download-progress"];
+    const validChannels = ["download-progress", "processing-status"];
     if (validChannels.includes(channel)) {
       ipcRenderer.removeListener(channel, subscription);
     }

@@ -16,32 +16,38 @@ function App() {
       setModelExists(exists);
     };
 
-    // SSE 연결 설정
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:58000';
-    const eventSource = new EventSource(`${BACKEND_URL}/status-events`);
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setProcesses(prev => {
+    // 프로세스 상태 업데이트 구독
+    const statusHandler = (data) => {
+      console.log("프로세스 상태 업데이트:", data);
+      setProcesses((prev) => {
         const newProcesses = new Map(prev);
-        newProcesses.set(data.processId, data);
+        newProcesses.set(data.processId, {
+          processId: data.processId,
+          id: data.processId,
+          type: data.type,
+          status: data.status,
+          timestamp: Date.now(),
+        });
+
+        if (data.status === "completed" || data.status === "error") {
+          setTimeout(() => {
+            setProcesses((prev) => {
+              const newProcesses = new Map(prev);
+              newProcesses.delete(data.processId);
+              return newProcesses;
+            });
+          }, 3000);
+        }
+
         return newProcesses;
       });
-      
-      if (data.status === 'completed' || data.status === 'error') {
-        setTimeout(() => {
-          setProcesses(prev => {
-            const newProcesses = new Map(prev);
-            newProcesses.delete(data.processId);
-            return newProcesses;
-          });
-        }, 3000);
-      }
     };
 
+    const subscription = window.electron.on("processing-status", statusHandler);
     checkModelStatus();
 
     return () => {
-      eventSource.close();
+      window.electron.removeListener("processing-status", subscription);
     };
   }, []);
 
@@ -79,9 +85,11 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
       <MenuBar />
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md w-96 h-full">
-          <h1 className="text-2xl font-bold text-center mb-6">최신 AI 모델 다운로드</h1>
+      <div className="flex-1 grid grid-rows-1 place-items-center p-2 h-full">
+        <div className="bg-white rounded-lg shadow-md w-full h-full p-8">
+          <h1 className="text-2xl font-bold text-center mb-4">
+            최신 AI 모델 다운로드
+          </h1>
 
           {modelExists ? (
             <ModelInstalled />
@@ -95,13 +103,15 @@ function App() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
+      <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
         <div className="flex items-center justify-between max-w-screen-lg mx-auto">
           <ProcessStatus processes={processes} />
 
           <span className="text-xs text-gray-500">
             {modelExists
-              ? `~/.u2net/${import.meta.env.VITE_MODEL_NAME || 'birefnet-general'}.onnx`
+              ? `~/.u2net/${
+                  import.meta.env.VITE_MODEL_NAME || "birefnet-general"
+                }.onnx`
               : "모델을 다운로드 해주세요"}
           </span>
         </div>

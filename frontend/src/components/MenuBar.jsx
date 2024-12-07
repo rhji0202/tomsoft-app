@@ -1,17 +1,20 @@
-import React from 'react';
+import React from "react";
 
 export function MenuBar() {
   const handleMinimize = () => {
-    window.electron.invoke('minimize-window');
+    window.electron.invoke("minimize-window");
   };
 
   const handleClose = () => {
-    window.electron.invoke('close-window');
+    window.electron.invoke("close-window");
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 h-8 bg-[#1A1D21] flex justify-end items-center px-2" style={{ WebkitAppRegion: 'drag' }}>
-      <div className="flex gap-4 pr-2" style={{ WebkitAppRegion: 'no-drag' }}>
+    <div
+      className="sticky top-0 left-0 right-0 h-8 bg-[#1A1D21] flex justify-end items-center px-2"
+      style={{ WebkitAppRegion: "drag" }}
+    >
+      <div className="flex gap-4 pr-2" style={{ WebkitAppRegion: "no-drag" }}>
         <button
           onClick={handleMinimize}
           className="text-[#9B9DA0] hover:text-white focus:outline-none"
@@ -34,4 +37,4 @@ export function MenuBar() {
       </div>
     </div>
   );
-} 
+}

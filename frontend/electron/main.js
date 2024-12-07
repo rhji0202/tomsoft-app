@@ -3,10 +3,12 @@ const path = require("path");
 const https = require("https");
 const fs = require("fs");
 const os = require("os");
+const eventEmitter = require("./events");
 let backendProcess = null;
 
 function startExpressServer() {
-  require("./server.js");
+  const server = require("./server.js");
+  server.on("processing-status", forwardStatusToRenderer);
 }
 
 function createWindow() {
@@ -45,6 +47,17 @@ function createWindow() {
 
   if (process.env.NODE_ENV === "development") {
     win.webContents.openDevTools();
+  }
+
+  // 프로세스 상태 업데이트 이벤트 전달
+  global.mainWindow = win; // 메인 윈도우 전역 저장
+}
+
+// Express 서버에서 발생하는 이벤트를 렌더러로 전달
+function forwardStatusToRenderer(data) {
+  if (global.mainWindow) {
+    console.log("상태 업데이트 전달:", data);
+    global.mainWindow.webContents.send("processing-status", data);
   }
 }
 
@@ -162,7 +175,7 @@ ipcMain.handle("download-model", async (event) => {
       fs.unlink(modelPath, () => {});
       reject({
         success: false,
-        error: err.message || "다운로드 중 오류가 발생했습니다.",
+        error: err.message || "다운로드 중 오류가 생했습니다.",
       });
     });
   });
@@ -173,6 +186,10 @@ ipcMain.handle("check-model", async () => {
   const homeDir = os.homedir();
   const modelPath = path.join(homeDir, ".u2net", `${modelName}.onnx`);
   return fs.existsSync(modelPath);
+});
+
+ipcMain.handle("get-app-version", () => {
+  return app.getVersion();
 });
 
 app.whenReady().then(createWindow);
