@@ -1,9 +1,11 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const https = require("https");
 const fs = require("fs");
 const os = require("os");
 const eventEmitter = require("./events");
+const { autoUpdater } = require("electron-updater");
+const log = require("electron-log");
 let backendProcess = null;
 
 function startExpressServer() {
@@ -195,7 +197,128 @@ ipcMain.handle("get-app-version", () => {
   return app.getVersion();
 });
 
-app.whenReady().then(createWindow);
+// 수동으로 업데이트 체크를 트리거하는 IPC 핸들러 추가
+ipcMain.handle("check-for-updates", async () => {
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return { success: true, updateInfo: result };
+  } catch (error) {
+    console.error("업데이트 체크 실패:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+function initAutoUpdater() {
+  // 개발 환경에서도 업데이트 체크 허용
+  if (process.env.NODE_ENV === "development") {
+    Object.defineProperty(app, "isPackaged", {
+      get() {
+        return true;
+      },
+    });
+  }
+
+  // 로깅 설정
+  autoUpdater.logger = log;
+  autoUpdater.logger.transports.file.level = "debug";
+  autoUpdater.logger.transports.console.level = "debug";
+
+  // 업데이트 설정
+  const server =
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : "https://updates.theonemind.com";
+
+  // autoUpdater 설정
+  autoUpdater.setFeedURL({
+    provider: "generic",
+    url: server,
+    updaterCacheDirName: "theonemind-updater",
+    requestHeaders: {
+      // 개발 환경에서 CORS 문제 해결을 위한 헤더 추가
+      "Cache-Control": "no-cache",
+    },
+  });
+
+  // 개발 환경에서 강제로 업데이트 설정
+  if (process.env.NODE_ENV === "development") {
+    autoUpdater.updateConfigPath = path.join(__dirname, "dev-app-update.yml");
+    // 개발 환경에서 baseURL 직접 설정
+    autoUpdater.configOnDisk.baseUrl = "http://localhost:3000/";
+  }
+
+  // 업데이트 확인 중
+  autoUpdater.on("checking-for-update", () => {
+    console.log("업데이트 확인 중...");
+  });
+
+  // 업데이트 가능
+  autoUpdater.on("update-available", (info) => {
+    console.log("업데이트 정보:", info);
+    dialog
+      .showMessageBox({
+        type: "info",
+        title: "업데이트 알림",
+        message: "새로운 버전이 있습니다. 지금 업데이트하시겠습니까?",
+        buttons: ["예", "아니오"],
+      })
+      .then((result) => {
+        if (result.response === 0) {
+          autoUpdater.downloadUpdate();
+        }
+      });
+  });
+
+  // 업데이트 없음
+  autoUpdater.on("update-not-available", () => {
+    console.log("현재 최신 버전입니다.");
+  });
+
+  // 다운로드 진행률
+  autoUpdater.on("download-progress", (progressObj) => {
+    if (global.mainWindow) {
+      global.mainWindow.webContents.send(
+        "update-progress",
+        progressObj.percent
+      );
+    }
+  });
+
+  // 업데이트 다운로드 완료
+  autoUpdater.on("update-downloaded", () => {
+    dialog
+      .showMessageBox({
+        type: "info",
+        title: "업데이트 준비 완료",
+        message: "업데이트가 다운로드되었습니다. 지금 재시작하시겠습니까?",
+        buttons: ["예", "나중에"],
+      })
+      .then((result) => {
+        if (result.response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      });
+  });
+
+  // 에러 처리
+  autoUpdater.on("error", (err) => {
+    console.error("업데이트 중 오류 발생:", err);
+    dialog.showErrorBox(
+      "업데이트 오류",
+      `업데이트 중 오류가 발생했습니다: ${err.message}`
+    );
+  });
+
+  // 주기적으로 업데이트 확인 (4시간마다)
+  setInterval(() => {
+    autoUpdater.checkForUpdates();
+  }, 1000 * 60 * 60 * 4);
+}
+
+app.whenReady().then(() => {
+  createWindow();
+  initAutoUpdater();
+});
 
 app.on("window-all-closed", () => {
   if (backendProcess) {

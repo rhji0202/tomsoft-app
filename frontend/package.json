@@ -1,12 +1,12 @@
 {
   "name": "TheOneMindUtility",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.2",
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite --port 51733",
     "build": "vite build",
-    "electron:dev": "cross-env NODE_ENV=development concurrently \"vite --port 51733\" \"wait-on tcp:51733 && electron .\"",
+    "electron:dev": "cross-env NODE_ENV=development concurrently \"vite --port 51733\" \"wait-on tcp:51733 && electron . --verbose\"",
     "electron:build": "vite build && electron-builder --publish never",
     "electron:build:publish": "vite build && electron-builder --publish always",
     "electron:build:win": "vite build && electron-builder --win",
@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "electron-log": "^5.2.4",
+    "electron-updater": "^6.1.7",
     "express": "^4.21.1",
     "lucide-react": "^0.464.0",
     "react": "^18.3.1",

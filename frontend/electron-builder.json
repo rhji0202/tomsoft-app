@@ -12,6 +12,12 @@
   "directories": {
     "output": "release"
   },
+  "publish": [
+    {
+      "provider": "generic",
+      "url": "http://localhost:3000"
+    }
+  ],
   "win": {
     "target": "nsis",
     "icon": "src/assets/logo.png"

@@ -8,13 +8,19 @@ contextBridge.exposeInMainWorld("electron", {
       "minimize-window",
       "close-window",
       "get-app-version",
+      "check-for-updates",
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
     }
   },
   on: (channel, callback) => {
-    const validChannels = ["download-progress", "processing-status"];
+    const validChannels = [
+      "download-progress",
+      "processing-status",
+      "update-progress",
+      "update-status",
+    ];
     if (validChannels.includes(channel)) {
       const subscription = (event, ...args) => callback(...args);
       ipcRenderer.on(channel, subscription);
@@ -22,7 +28,12 @@ contextBridge.exposeInMainWorld("electron", {
     }
   },
   removeListener: (channel, subscription) => {
-    const validChannels = ["download-progress", "processing-status"];
+    const validChannels = [
+      "download-progress",
+      "processing-status",
+      "update-progress",
+      "update-status",
+    ];
     if (validChannels.includes(channel)) {
       ipcRenderer.removeListener(channel, subscription);
     }
