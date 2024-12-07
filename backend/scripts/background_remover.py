@@ -158,6 +158,7 @@ def remove_background(image_path: str) -> str:
             input_image,
             session=session,
             post_process_mask=True,
+            bgcolor=(255, 255, 255, 255)
         )
         logger.info("Background removal completed")
         

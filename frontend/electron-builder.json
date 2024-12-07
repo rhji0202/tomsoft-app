@@ -1,7 +1,6 @@
 {
   "appId": "com.theonemind.id",
   "productName": "TheOneMindUtility",
-  "icon": "src/assets/logo.png",
   "files": ["dist/**/*", "electron/**/*"],
   "extraResources": [
     {
@@ -18,6 +17,7 @@
     "icon": "src/assets/logo.png"
   },
   "mac": {
-    "target": "dmg"
+    "target": "dmg",
+    "icon": "src/assets/logo.icns"
   }
 }

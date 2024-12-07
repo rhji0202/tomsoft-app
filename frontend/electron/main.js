@@ -11,6 +11,17 @@ function startExpressServer() {
   server.on("processing-status", forwardStatusToRenderer);
 }
 
+// 핸들러들을 한 번만 등록하도록 전역으로 이동
+ipcMain.handle("minimize-window", () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) win.minimize();
+});
+
+ipcMain.handle("close-window", () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) win.close();
+});
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 400,
@@ -36,14 +47,6 @@ function createWindow() {
 
   // 백엔드 서버 시작
   startExpressServer();
-
-  ipcMain.handle("minimize-window", () => {
-    win.minimize();
-  });
-
-  ipcMain.handle("close-window", () => {
-    win.close();
-  });
 
   if (process.env.NODE_ENV === "development") {
     win.webContents.openDevTools();
