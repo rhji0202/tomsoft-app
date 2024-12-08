@@ -1,8 +1,0 @@
-version: 0.1.2
-files:
-  - url: http://localhost:3000/downloads/TheOneMindUtility-0.1.2-setup.exe
-    sha512: YOUR_FILE_HASH
-    size: YOUR_FILE_SIZE
-path: TheOneMindUtility-0.1.2-setup.exe
-sha512: YOUR_FILE_HASH
-releaseDate: "2024-12-07T15:05:23.000Z"

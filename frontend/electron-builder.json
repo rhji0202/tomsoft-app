@@ -1,5 +1,5 @@
 {
-  "appId": "com.theonemind.id",
+  "appId": "com.theonemind.utility",
   "productName": "TheOneMindUtility",
   "files": ["dist/**/*", "electron/**/*"],
   "extraResources": [
@@ -15,15 +15,34 @@
   "publish": [
     {
       "provider": "generic",
-      "url": "http://localhost:3000"
+      "url": "http://localhost:3000",
+      "channel": "latest",
+      "updaterCacheDirName": "theonemind-updater"
     }
   ],
   "win": {
-    "target": "nsis",
+    "target": ["nsis", "zip"],
     "icon": "src/assets/logo.png"
   },
   "mac": {
-    "target": "dmg",
-    "icon": "src/assets/logo.icns"
+    "target": ["dmg", "zip"],
+    "icon": "src/assets/logo.icns",
+    "category": "public.app-category.utilities",
+    "hardenedRuntime": true,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "signIgnore": ["node_modules/**/*"],
+    "identity": null,
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "electronUpdaterCompatibility": ">=2.15",
+    "electronLanguages": ["ko"],
+    "extendInfo": {
+      "LSUIElement": true,
+      "CFBundleIdentifier": "com.theonemind.utility",
+      "CFBundleName": "TheOneMindUtility",
+      "CFBundleDisplayName": "TheOneMindUtility",
+      "CFBundlePackageType": "APPL",
+      "CFBundleShortVersionString": "${version}"
+    }
   }
 }

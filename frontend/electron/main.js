@@ -198,30 +198,32 @@ ipcMain.handle("get-app-version", () => {
 });
 
 // 수동으로 업데이트 체크를 트리거하는 IPC 핸들러 추가
-ipcMain.handle("check-for-updates", async () => {
+ipcMain.handle("check-for-updates", async (event) => {
   try {
     const result = await autoUpdater.checkForUpdates();
-    return { success: true, updateInfo: result };
+    // 중요: 직렬화 가능한 데이터만 반환
+    return {
+      version: result.updateInfo.version,
+      files: result.updateInfo.files,
+      releaseDate: result.updateInfo.releaseDate,
+      // 필요한 다른 직렬화 가능한 데이터
+    };
   } catch (error) {
-    console.error("업데이트 체크 실패:", error);
-    return { success: false, error: error.message };
+    console.error("Update check failed:", error);
+    return null;
   }
 });
 
 function initAutoUpdater() {
-  // 개발 환경에서도 업데이트 체크 허용
-  if (process.env.NODE_ENV === "development") {
-    Object.defineProperty(app, "isPackaged", {
-      get() {
-        return true;
-      },
-    });
+  // macOS 앱 번들 ID 설정
+  if (process.platform === "darwin") {
+    app.setAppUserModelId("com.theonemind.utility");
   }
 
   // 로깅 설정
   autoUpdater.logger = log;
-  autoUpdater.logger.transports.file.level = "debug";
-  autoUpdater.logger.transports.console.level = "debug";
+  autoUpdater.logger.transports.file.level = "silly";
+  autoUpdater.logger.transports.console.level = "silly";
 
   // 업데이트 설정
   const server =
@@ -234,90 +236,170 @@ function initAutoUpdater() {
     provider: "generic",
     url: server,
     updaterCacheDirName: "theonemind-updater",
+    channel: "latest",
+    appId: "com.theonemind.utility",
     requestHeaders: {
-      // 개발 환경에서 CORS 문제 해결을 위한 헤더 추가
-      "Cache-Control": "no-cache",
+      "User-Agent": "TheOneMindUtility",
     },
   });
 
-  // 개발 환경에서 강제로 업데이트 설정
+  // 개발 환경에서의 설정
   if (process.env.NODE_ENV === "development") {
     autoUpdater.updateConfigPath = path.join(__dirname, "dev-app-update.yml");
-    // 개발 환경에서 baseURL 직접 설정
-    autoUpdater.configOnDisk.baseUrl = "http://localhost:3000/";
+    autoUpdater.forceDevUpdateConfig = true;
+    autoUpdater.allowDowngrade = true;
+    autoUpdater.allowPrerelease = true;
+    autoUpdater.autoInstallOnAppQuit = false;
+    process.env.CSC_IDENTITY_AUTO_DISCOVERY = false;
+
+    // Squirrel.Mac 캐시 디렉토리 설정
+    process.env.SQUIRREL_UPDATES_PATH = path.join(
+      app.getPath("userData"),
+      "theonemind-updater"
+    );
   }
 
-  // 업데이트 확인 중
+  // macOS에서 추가 설정
+  if (process.platform === "darwin") {
+    autoUpdater.on("before-quit-for-update", () => {
+      app.quit();
+    });
+  }
+
+  // 업데이트 확인
   autoUpdater.on("checking-for-update", () => {
-    console.log("업데이트 확인 중...");
+    log.info("업데이트 확인 중...");
   });
 
   // 업데이트 가능
   autoUpdater.on("update-available", (info) => {
-    console.log("업데이트 정보:", info);
+    log.info("업데이트 가능:", info);
+    log.info("다운로드할 파일 정보:", {
+      version: info.version,
+      files: info.files,
+      path: info.path,
+      sha512: info.sha512,
+    });
+
     dialog
       .showMessageBox({
         type: "info",
         title: "업데이트 알림",
         message: "새로운 버전이 있습니다. 지금 업데이트하시겠습니까?",
         buttons: ["예", "아니오"],
+        cancelId: 1,
       })
       .then((result) => {
         if (result.response === 0) {
-          autoUpdater.downloadUpdate();
+          log.info("업데이트 다운로드 시작");
+          try {
+            // 다운로드 시작 전에 이벤트 리스너 설정
+            autoUpdater.on("download-progress", (progress) => {
+              log.info("다운로드 진행률 상세:", {
+                percent: progress.percent,
+                transferred: progress.transferred,
+                total: progress.total,
+                bytesPerSecond: progress.bytesPerSecond,
+              });
+              if (global.mainWindow) {
+                global.mainWindow.webContents.send(
+                  "update-progress",
+                  progress.percent
+                );
+              }
+            });
+
+            // 다운로드 시작
+            log.info("다운로드 시작 시도");
+            autoUpdater.downloadUpdate().catch((err) => {
+              log.error("다운로드 시작 실패:", err);
+              log.error("실패 세부 정보:", {
+                code: err.code,
+                message: err.message,
+                stack: err.stack,
+              });
+              dialog.showErrorBox(
+                "다운로드 오류",
+                `업데이트 다운로드를 시작할 수 없습니다: ${err.message}`
+              );
+            });
+          } catch (err) {
+            log.error("downloadUpdate 호출 실패:", err);
+          }
+        } else {
+          log.info("업데이트 다운로드 취소됨");
+          autoUpdater.removeAllListeners("update-downloaded");
+          autoUpdater.removeAllListeners("download-progress");
         }
+      })
+      .catch((err) => {
+        log.error("업데이트 다이얼로그 에러:", err);
       });
   });
 
   // 업데이트 없음
-  autoUpdater.on("update-not-available", () => {
-    console.log("현재 최신 버전입니다.");
-  });
-
-  // 다운로드 진행률
-  autoUpdater.on("download-progress", (progressObj) => {
-    if (global.mainWindow) {
-      global.mainWindow.webContents.send(
-        "update-progress",
-        progressObj.percent
-      );
-    }
+  autoUpdater.on("update-not-available", (info) => {
+    log.info("업데이트 없음:", info);
   });
 
   // 업데이트 다운로드 완료
-  autoUpdater.on("update-downloaded", () => {
+  autoUpdater.on("update-downloaded", (info) => {
+    log.info("업데이트 다운로드 완료:", info);
     dialog
       .showMessageBox({
         type: "info",
         title: "업데이트 준비 완료",
-        message: "업데이트가 다운로드되었습니다. 지금 재시작하시겠습니까?",
+        message: "업데이트가 다운로드되었습니다. 지금 설치하시겠습니까?",
         buttons: ["예", "나중에"],
+        defaultId: 0,
+        cancelId: 1,
       })
       .then((result) => {
         if (result.response === 0) {
-          autoUpdater.quitAndInstall();
+          log.info("업데이트 설치 시작");
+          autoUpdater.quitAndInstall(false, true);
+        } else {
+          log.info("업데이트 설치 연기");
         }
+      })
+      .catch((err) => {
+        log.error("설치 다이얼로그 에러:", err);
       });
   });
 
   // 에러 처리
   autoUpdater.on("error", (err) => {
-    console.error("업데이트 중 오류 발생:", err);
+    log.error("업데이트 오류:", err);
+    log.error("오류 세부 정보:", {
+      code: err.code,
+      domain: err.domain,
+      stack: err.stack,
+    });
     dialog.showErrorBox(
       "업데이트 오류",
       `업데이트 중 오류가 발생했습니다: ${err.message}`
     );
   });
 
-  // 주기적으로 업데이트 확인 (4시간마다)
+  // 주기적으로 업데이트 확인 (4시간마��)
   setInterval(() => {
     autoUpdater.checkForUpdates();
   }, 1000 * 60 * 60 * 4);
+
+  // 이벤트 리스너 추가
+  autoUpdater.on("error", (err) => {
+    console.error("업데이트 오류:", err);
+    console.error("스택:", err.stack);
+  });
 }
 
 app.whenReady().then(() => {
   createWindow();
   initAutoUpdater();
+  // 앱 시작 시 즉시 업데이트 확인
+  autoUpdater.checkForUpdates().catch((err) => {
+    console.error("Initial update check failed:", err);
+  });
 });
 
 app.on("window-all-closed", () => {

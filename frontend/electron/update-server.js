@@ -18,20 +18,21 @@ app.use((req, res, next) => {
   next();
 });
 
-// yml 파일 서비스를 위한 라우트 추가
+// yml 파일 서비스를 위한 라우트 수정
 app.get("/latest-mac.yml", (req, res) => {
-  const ymlPath = path.join(__dirname, "updates/latest-mac.yml");
-  if (fs.existsSync(ymlPath)) {
-    res.sendFile(ymlPath);
-  } else {
-    res.status(404).send("Update file not found");
-  }
-});
+  const ymlPath = path.join(__dirname, "../release/latest-mac.yml");
+  console.log("yml 파일 요청:", ymlPath);
+  console.log("yml 파일 존재 여부:", fs.existsSync(ymlPath));
 
-app.get("/latest.yml", (req, res) => {
-  const ymlPath = path.join(__dirname, "updates/latest.yml");
   if (fs.existsSync(ymlPath)) {
-    res.sendFile(ymlPath);
+    try {
+      const content = fs.readFileSync(ymlPath, "utf8");
+      console.log("yml 파일 내용:", content);
+      res.sendFile(ymlPath);
+    } catch (err) {
+      console.error("yml 파일 읽기 실패:", err);
+      res.status(500).send("Error reading yml file");
+    }
   } else {
     res.status(404).send("Update file not found");
   }
@@ -43,7 +44,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message });
 });
 
-// 업데이트 정�를 제공하는 엔드포인트
+// 업데이트 정보를 제공하는 엔드포인트
 app.get("/update/:platform/:version", (req, res) => {
   const { platform, version } = req.params;
 
@@ -61,49 +62,100 @@ app.get("/update/:platform/:version", (req, res) => {
   const serverUrl = process.env.UPDATE_SERVER_URL || "http://localhost:3000";
 
   // 플랫폼별 응답 구성
-  if (platform === "darwin") {
-    // macOS용 응답
-    const updateInfo = {
-      version: latestVersion,
-      files: [
-        {
-          url: `${serverUrl}/downloads/TheOneMindUtility-${latestVersion}-arm64.dmg`,
-          sha512:
-            "c36bdf110d2122b6e742d5f684eb2b1ef64aeefe9d6699981c072daa1af5ad70aece8f6d66b3c86a5af4ea4ec3c5850f6e78fb8f5755e3ae21f3fb84f3a69dbf",
-          size: 236639959,
-        },
-      ],
-      path: `TheOneMindUtility-${latestVersion}-arm64.dmg`,
-      sha512:
-        "c36bdf110d2122b6e742d5f684eb2b1ef64aeefe9d6699981c072daa1af5ad70aece8f6d66b3c86a5af4ea4ec3c5850f6e78fb8f5755e3ae21f3fb84f3a69dbf",
-      releaseDate: new Date().toISOString(),
-    };
+  const updateInfo = {
+    version: latestVersion,
+    files: [
+      {
+        url:
+          platform === "darwin"
+            ? `${serverUrl}/downloads/TheOneMindUtility-${latestVersion}-arm64.dmg`
+            : `${serverUrl}/downloads/TheOneMindUtility-${latestVersion}-setup.exe`,
+        sha512:
+          platform === "darwin"
+            ? "c36bdf110d2122b6e742d5f684eb2b1ef64aeefe9d6699981c072daa1af5ad70aece8f6d66b3c86a5af4ea4ec3c5850f6e78fb8f5755e3ae21f3fb84f3a69dbf"
+            : "sha512-windows-hash",
+        size: platform === "darwin" ? 236639959 : 0,
+      },
+    ],
+    path:
+      platform === "darwin"
+        ? `TheOneMindUtility-${latestVersion}-arm64.dmg`
+        : `TheOneMindUtility-${latestVersion}-setup.exe`,
+    sha512:
+      platform === "darwin"
+        ? "c36bdf110d2122b6e742d5f684eb2b1ef64aeefe9d6699981c072daa1af5ad70aece8f6d66b3c86a5af4ea4ec3c5850f6e78fb8f5755e3ae21f3fb84f3a69dbf"
+        : "sha512-windows-hash",
+    releaseDate: new Date().toISOString(),
+  };
 
-    res.json(updateInfo);
-  } else if (platform === "win32") {
-    // Windows용 응답
-    const updateInfo = {
-      version: latestVersion,
-      files: [
-        {
-          url: `${serverUrl}/downloads/TheOneMindUtility-${latestVersion}-setup.exe`,
-          sha512: "sha512-windows-hash",
-          size: 0, // 실제 Windows 파일 크기로 변경 필요
-        },
-      ],
-      path: `TheOneMindUtility-${latestVersion}-setup.exe`,
-      sha512: "sha512-windows-hash",
-      releaseDate: new Date().toISOString(),
-    };
-
+  if (platform === "darwin" || platform === "win32") {
     res.json(updateInfo);
   } else {
     res.status(400).json({ error: "지원하지 않는 플랫폼입니다." });
   }
 });
 
-// 업데이트 파일 제공을 위한 정적 파일 서버
-app.use("/downloads", express.static(path.join(__dirname, "updates")));
+// 업데이트 파일 제공을 위한 정적 파일 서버 수정
+app.get("/downloads/:file", (req, res) => {
+  const filePath = path.join(__dirname, "../release", req.params.file);
+  console.log("요청된 파일 경로:", filePath);
+  console.log("파일 존재 여부:", fs.existsSync(filePath));
+
+  // 파일 상세 정보 로깅
+  try {
+    const stats = fs.statSync(filePath);
+    console.log("파일 정보:", {
+      size: stats.size,
+      permissions: stats.mode,
+      created: stats.birthtime,
+      modified: stats.mtime,
+    });
+  } catch (err) {
+    console.error("파일 정보 읽기 실패:", err);
+  }
+
+  if (fs.existsSync(filePath)) {
+    console.log("파일 전송 시작:", filePath);
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error("파일 전송 실패:", err);
+        res.status(500).send("Error sending file");
+      } else {
+        console.log("파일 전송 완료");
+      }
+    });
+  } else {
+    console.log("파일 없음:", filePath);
+    // 디렉토리 내용 확인
+    try {
+      const releaseDir = path.join(__dirname, "../release");
+      const files = fs.readdirSync(releaseDir);
+      console.log("release 디렉토리 내용:", files);
+    } catch (err) {
+      console.error("디렉토리 읽기 실패:", err);
+    }
+    res.status(404).send("Update file not found");
+  }
+});
+
+app.get("/", (req, res) => {
+  res.send("Hello World");
+});
+
+// 서버 시작 시 디렉토리 확인
+const releaseDir = path.join(__dirname, "../release");
+console.log("서버 시작 - release 디렉토리 확인");
+console.log("release 디렉토리 경로:", releaseDir);
+console.log("release 디렉토리 존재 여부:", fs.existsSync(releaseDir));
+
+if (fs.existsSync(releaseDir)) {
+  try {
+    const files = fs.readdirSync(releaseDir);
+    console.log("release 디렉토리 내용:", files);
+  } catch (err) {
+    console.error("디렉토리 읽기 실패:", err);
+  }
+}
 
 const PORT = process.env.UPDATE_SERVER_PORT || 3000;
 app.listen(PORT, () => {
