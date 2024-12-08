@@ -15,9 +15,9 @@
   "publish": [
     {
       "provider": "generic",
-      "url": "http://localhost:3000",
+      "url": "http://localhost:80",
       "channel": "latest",
-      "updaterCacheDirName": "theonemind-updater"
+      "updaterCacheDirName": "com.theonemind.utility-updater"
     }
   ],
   "win": {

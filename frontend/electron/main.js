@@ -200,25 +200,37 @@ ipcMain.handle("get-app-version", () => {
 // 수동으로 업데이트 체크를 트리거하는 IPC 핸들러 추가
 ipcMain.handle("check-for-updates", async (event) => {
   try {
-    const result = await autoUpdater.checkForUpdates();
-    // 중요: 직렬화 가능한 데이터만 반환
+    const result = await Promise.race([
+      autoUpdater.checkForUpdates(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("업데이트 확인 시간 초과")), 10000)
+      ),
+    ]);
+
     return {
       version: result.updateInfo.version,
       files: result.updateInfo.files,
       releaseDate: result.updateInfo.releaseDate,
-      // 필요한 다른 직렬화 가능한 데이터
     };
   } catch (error) {
     console.error("Update check failed:", error);
+    log.error("업데이트 확인 실패:", {
+      message: error.message,
+      stack: error.stack,
+    });
     return null;
   }
 });
 
 function initAutoUpdater() {
-  // macOS 앱 번들 ID 설정
+  // macOS 앱 번들 ID 설정 수정
   if (process.platform === "darwin") {
-    app.setAppUserModelId("com.theonemind.utility");
+    app.setAppUserModelId("com.theonemind.utility"); // package.json의 appId와 일치하도록 설정
   }
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.allowDowngrade = false;
+  autoUpdater.allowPrerelease = false;
 
   // 로깅 설정
   autoUpdater.logger = log;
@@ -226,22 +238,81 @@ function initAutoUpdater() {
   autoUpdater.logger.transports.console.level = "silly";
 
   // 업데이트 설정
-  const server =
-    process.env.NODE_ENV === "development"
-      ? "http://localhost:3000"
-      : "https://updates.theonemind.com";
+  const server = process.env.UPDATE_SERVER_URL || "http://localhost:80";
 
-  // autoUpdater 설정
+  // autoUpdater 설정 수정
   autoUpdater.setFeedURL({
     provider: "generic",
     url: server,
-    updaterCacheDirName: "theonemind-updater",
+    updaterCacheDirName: "com.theonemind.utility-updater",
     channel: "latest",
     appId: "com.theonemind.utility",
     requestHeaders: {
       "User-Agent": "TheOneMindUtility",
     },
   });
+
+  // Mac 전용 설정 추가
+  if (process.platform === "darwin") {
+    // ShipIt 캐시 디렉토리 설정
+    const shipItPath = path.join(
+      app.getPath("temp"),
+      "com.theonemind.utility.ShipIt"
+    );
+    if (!fs.existsSync(shipItPath)) {
+      fs.mkdirSync(shipItPath, { recursive: true });
+    }
+    process.env.SQUIRREL_UPDATES_PATH = shipItPath;
+
+    // 업데이트 다운로드 전 이벤트 처리
+    autoUpdater.on("before-quit-for-update", () => {
+      try {
+        const updatePath = path.join(
+          app.getPath("temp"),
+          "com.theonemind.utility.ShipIt"
+        );
+        if (!fs.existsSync(updatePath)) {
+          fs.mkdirSync(updatePath, { recursive: true });
+        }
+      } catch (err) {
+        log.error("업데이트 디렉토리 생성 실패:", err);
+      }
+    });
+
+    // 업데이트 다운로드 완료 후 추가 검증
+    autoUpdater.on("update-downloaded", (info) => {
+      log.info("업데이트 다운로드 완료. 파일 검증 중...");
+
+      // 다운로드된 파일 경로 확인
+      const downloadPath = path.join(
+        app.getPath("temp"),
+        "com.theonemind.utility.ShipIt",
+        `${info.version}`
+      );
+
+      if (!fs.existsSync(downloadPath)) {
+        log.error("업데이트 파일을 찾을 수 없음:", downloadPath);
+        return;
+      }
+
+      // 이후 기존 업데이트 로직 실행
+      dialog
+        .showMessageBox({
+          type: "info",
+          title: "업데이트 준비 완료",
+          message: "업데이트가 다운로드되었습니다. 지금 설치하시겠습니까?",
+          buttons: ["예", "나중에"],
+          defaultId: 0,
+          cancelId: 1,
+        })
+        .then((result) => {
+          if (result.response === 0) {
+            log.info("업데이트 설치 시작");
+            autoUpdater.quitAndInstall(false, true);
+          }
+        });
+    });
+  }
 
   // 개발 환경에서의 설정
   if (process.env.NODE_ENV === "development") {
@@ -251,24 +322,14 @@ function initAutoUpdater() {
     autoUpdater.allowPrerelease = true;
     autoUpdater.autoInstallOnAppQuit = false;
     process.env.CSC_IDENTITY_AUTO_DISCOVERY = false;
-
-    // Squirrel.Mac 캐시 디렉토리 설정
-    process.env.SQUIRREL_UPDATES_PATH = path.join(
-      app.getPath("userData"),
-      "theonemind-updater"
-    );
-  }
-
-  // macOS에서 추가 설정
-  if (process.platform === "darwin") {
-    autoUpdater.on("before-quit-for-update", () => {
-      app.quit();
-    });
   }
 
   // 업데이트 확인
   autoUpdater.on("checking-for-update", () => {
-    log.info("업데이트 확인 중...");
+    log.info("업데이트 확인 중...", {
+      currentVersion: app.getVersion(),
+      updateURL: autoUpdater.getFeedURL(),
+    });
   });
 
   // 업데이트 가능
@@ -381,7 +442,7 @@ function initAutoUpdater() {
     );
   });
 
-  // 주기적으로 업데이트 확인 (4시간마��)
+  // 주기적으로 업데이트 확인 (4시간마다)
   setInterval(() => {
     autoUpdater.checkForUpdates();
   }, 1000 * 60 * 60 * 4);

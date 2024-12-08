@@ -6,9 +6,10 @@ const fs = require("fs");
 const app = express();
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
+    origin: ["http://localhost:51733", "app://.", "file://"],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "User-Agent"],
+    credentials: true,
   })
 );
 
@@ -41,7 +42,10 @@ app.get("/latest-mac.yml", (req, res) => {
 // 에러 핸들링 추가
 app.use((err, req, res, next) => {
   console.error("서버 에러:", err);
-  res.status(500).json({ error: err.message });
+  res.status(500).json({
+    error: "업데이트 서버 오류",
+    details: err.message,
+  });
 });
 
 // 업데이트 정보를 제공하는 엔드포인트
@@ -54,12 +58,23 @@ app.get("/update/:platform/:version", (req, res) => {
   );
   const latestVersion = packageJson.version;
 
-  if (version === latestVersion) {
+  // 버전 비교 로직 추가
+  const currentVersion = version.replace(/^v/, "");
+  if (currentVersion >= latestVersion) {
+    console.log("현재 버전이 최신 버전보다 같거나 높음:", {
+      current: currentVersion,
+      latest: latestVersion,
+    });
     res.status(204).send();
     return;
   }
 
-  const serverUrl = process.env.UPDATE_SERVER_URL || "http://localhost:3000";
+  console.log("업데이트 필요:", {
+    current: currentVersion,
+    latest: latestVersion,
+  });
+
+  const serverUrl = process.env.UPDATE_SERVER_URL || "http://localhost:80";
 
   // 플랫폼별 응답 구성
   const updateInfo = {
@@ -68,8 +83,8 @@ app.get("/update/:platform/:version", (req, res) => {
       {
         url:
           platform === "darwin"
-            ? `${serverUrl}/downloads/TheOneMindUtility-${latestVersion}-arm64.dmg`
-            : `${serverUrl}/downloads/TheOneMindUtility-${latestVersion}-setup.exe`,
+            ? `${serverUrl}/TheOneMindUtility-${latestVersion}-arm64.dmg`
+            : `${serverUrl}/TheOneMindUtility-${latestVersion}-setup.exe`,
         sha512:
           platform === "darwin"
             ? "c36bdf110d2122b6e742d5f684eb2b1ef64aeefe9d6699981c072daa1af5ad70aece8f6d66b3c86a5af4ea4ec3c5850f6e78fb8f5755e3ae21f3fb84f3a69dbf"
@@ -96,7 +111,7 @@ app.get("/update/:platform/:version", (req, res) => {
 });
 
 // 업데이트 파일 제공을 위한 정적 파일 서버 수정
-app.get("/downloads/:file", (req, res) => {
+app.get("/:file", (req, res) => {
   const filePath = path.join(__dirname, "../release", req.params.file);
   console.log("요청된 파일 경로:", filePath);
   console.log("파일 존재 여부:", fs.existsSync(filePath));
@@ -157,7 +172,7 @@ if (fs.existsSync(releaseDir)) {
   }
 }
 
-const PORT = process.env.UPDATE_SERVER_PORT || 3000;
+const PORT = process.env.UPDATE_SERVER_PORT || 80;
 app.listen(PORT, () => {
   console.log(`업데이트 서버가 포트 ${PORT}에서 실행 중입니다`);
 });
