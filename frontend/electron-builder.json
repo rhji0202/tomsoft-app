@@ -1,5 +1,5 @@
 {
-  "appId": "com.theonemind.utility",
+  "appId": "com.autorunlab.utility",
   "productName": "TheOneMindUtility",
   "files": ["dist/**/*", "electron/**/*"],
   "extraResources": [
@@ -15,9 +15,9 @@
   "publish": [
     {
       "provider": "generic",
-      "url": "http://localhost:80",
+      "url": "http://updateServer.orb.local",
       "channel": "latest",
-      "updaterCacheDirName": "com.theonemind.utility-updater"
+      "updaterCacheDirName": "com.autorunlab.utility-updater"
     }
   ],
   "win": {
@@ -38,11 +38,14 @@
     "electronLanguages": ["ko"],
     "extendInfo": {
       "LSUIElement": true,
-      "CFBundleIdentifier": "com.theonemind.utility",
+      "CFBundleIdentifier": "com.autorunlab.utility",
       "CFBundleName": "TheOneMindUtility",
       "CFBundleDisplayName": "TheOneMindUtility",
       "CFBundlePackageType": "APPL",
-      "CFBundleShortVersionString": "${version}"
+      "CFBundleShortVersionString": "${version}",
+      "NSAppTransportSecurity": {
+        "NSAllowsArbitraryLoads": true
+      }
     }
   }
 }

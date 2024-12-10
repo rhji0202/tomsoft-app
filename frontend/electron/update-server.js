@@ -74,7 +74,8 @@ app.get("/update/:platform/:version", (req, res) => {
     latest: latestVersion,
   });
 
-  const serverUrl = process.env.UPDATE_SERVER_URL || "http://localhost:80";
+  const serverUrl =
+    process.env.UPDATE_SERVER_URL || "http://updateServer.orb.local";
 
   // 플랫폼별 응답 구성
   const updateInfo = {

@@ -225,7 +225,7 @@ ipcMain.handle("check-for-updates", async (event) => {
 function initAutoUpdater() {
   // macOS 앱 번들 ID 설정 수정
   if (process.platform === "darwin") {
-    app.setAppUserModelId("com.theonemind.utility"); // package.json의 appId와 일치하도록 설정
+    app.setAppUserModelId("com.autorunlab.utility");
   }
 
   autoUpdater.autoDownload = false;
@@ -234,85 +234,42 @@ function initAutoUpdater() {
 
   // 로깅 설정
   autoUpdater.logger = log;
-  autoUpdater.logger.transports.file.level = "silly";
-  autoUpdater.logger.transports.console.level = "silly";
+  autoUpdater.logger.transports.file.level = "debug";
+  autoUpdater.logger.transports.console.level = "debug";
 
   // 업데이트 설정
-  const server = process.env.UPDATE_SERVER_URL || "http://localhost:80";
+  const server =
+    process.env.UPDATE_SERVER_URL || "http://updateServer.orb.local";
+
+  // macOS의 경우 업데이트 캐시 디렉토리 확인 및 생성
+  if (process.platform === "darwin") {
+    const updateCachePath = path.join(
+      app.getPath("temp"),
+      "com.autorunlab.utility.ShipIt"
+    );
+
+    try {
+      if (!fs.existsSync(updateCachePath)) {
+        fs.mkdirSync(updateCachePath, { recursive: true });
+      }
+      // 캐시 디렉토리 권한 설정
+      fs.chmodSync(updateCachePath, "755");
+    } catch (err) {
+      log.error("업데이트 캐시 디렉토리 생성 실패:", err);
+    }
+  }
 
   // autoUpdater 설정 수정
   autoUpdater.setFeedURL({
     provider: "generic",
     url: server,
-    updaterCacheDirName: "com.theonemind.utility-updater",
+    updaterCacheDirName: "com.autorunlab.utility-updater",
     channel: "latest",
-    appId: "com.theonemind.utility",
+    appId: "com.autorunlab.utility",
     requestHeaders: {
       "User-Agent": "TheOneMindUtility",
     },
   });
-
-  // Mac 전용 설정 추가
-  if (process.platform === "darwin") {
-    // ShipIt 캐시 디렉토리 설정
-    const shipItPath = path.join(
-      app.getPath("temp"),
-      "com.theonemind.utility.ShipIt"
-    );
-    if (!fs.existsSync(shipItPath)) {
-      fs.mkdirSync(shipItPath, { recursive: true });
-    }
-    process.env.SQUIRREL_UPDATES_PATH = shipItPath;
-
-    // 업데이트 다운로드 전 이벤트 처리
-    autoUpdater.on("before-quit-for-update", () => {
-      try {
-        const updatePath = path.join(
-          app.getPath("temp"),
-          "com.theonemind.utility.ShipIt"
-        );
-        if (!fs.existsSync(updatePath)) {
-          fs.mkdirSync(updatePath, { recursive: true });
-        }
-      } catch (err) {
-        log.error("업데이트 디렉토리 생성 실패:", err);
-      }
-    });
-
-    // 업데이트 다운로드 완료 후 추가 검증
-    autoUpdater.on("update-downloaded", (info) => {
-      log.info("업데이트 다운로드 완료. 파일 검증 중...");
-
-      // 다운로드된 파일 경로 확인
-      const downloadPath = path.join(
-        app.getPath("temp"),
-        "com.theonemind.utility.ShipIt",
-        `${info.version}`
-      );
-
-      if (!fs.existsSync(downloadPath)) {
-        log.error("업데이트 파일을 찾을 수 없음:", downloadPath);
-        return;
-      }
-
-      // 이후 기존 업데이트 로직 실행
-      dialog
-        .showMessageBox({
-          type: "info",
-          title: "업데이트 준비 완료",
-          message: "업데이트가 다운로드되었습니다. 지금 설치하시겠습니까?",
-          buttons: ["예", "나중에"],
-          defaultId: 0,
-          cancelId: 1,
-        })
-        .then((result) => {
-          if (result.response === 0) {
-            log.info("업데이트 설치 시작");
-            autoUpdater.quitAndInstall(false, true);
-          }
-        });
-    });
-  }
 
   // 개발 환경에서의 설정
   if (process.env.NODE_ENV === "development") {
@@ -329,6 +286,9 @@ function initAutoUpdater() {
     log.info("업데이트 확인 중...", {
       currentVersion: app.getVersion(),
       updateURL: autoUpdater.getFeedURL(),
+      environment: process.env.NODE_ENV,
+      platform: process.platform,
+      arch: process.arch,
     });
   });
 
@@ -430,11 +390,13 @@ function initAutoUpdater() {
 
   // 에러 처리
   autoUpdater.on("error", (err) => {
-    log.error("업데이트 오류:", err);
-    log.error("오류 세부 정보:", {
+    log.error("업데이트 오류:", {
+      message: err.message,
       code: err.code,
-      domain: err.domain,
       stack: err.stack,
+      feedURL: autoUpdater.getFeedURL(),
+      currentVersion: app.getVersion(),
+      platform: process.platform,
     });
     dialog.showErrorBox(
       "업데이트 오류",

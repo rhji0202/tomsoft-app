@@ -1,4 +1,4 @@
 provider: generic
-url: http://localhost:80
-updaterCacheDirName: com.theonemind.utility-updater
+url: http://updateServer.orb.local
+updaterCacheDirName: com.autorunlab.utility-updater
 channel: latest

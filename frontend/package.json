@@ -1,7 +1,7 @@
 {
   "name": "TheOneMindUtility",
   "private": true,
-  "version": "0.1.3",
+  "version": "0.1.2",
   "author": "TheOneMind",
   "description": "TheOneMindUtility",
   "main": "electron/main.js",
@@ -9,7 +9,7 @@
     "dev": "vite --port 51733",
     "build": "vite build",
     "electron:dev": "cross-env NODE_ENV=development concurrently \"vite --port 51733\" \"wait-on tcp:51733 && electron . --verbose\"",
-    "electron:build": "vite build && electron-builder --publish never",
+    "electron:build": "vite build && electron-builder",
     "electron:build:publish": "vite build && electron-builder --publish always",
     "electron:build:win": "vite build && electron-builder --win",
     "electron:build:mac": "vite build && electron-builder --mac",
