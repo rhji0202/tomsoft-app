@@ -1,4 +1,4 @@
 provider: generic
 url: http://updateServer.orb.local
-updaterCacheDirName: com.autorunlab.utility-updater
+updaterCacheDirName: com.autorunlab-updater
 channel: latest

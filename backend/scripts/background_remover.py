@@ -24,7 +24,7 @@ def get_cert_path():
         base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../frontend'))
     
     # PEM 파일 경로 반환
-    return os.path.join(base_path, 'cert', 'theonemind.com+4.pem')
+    return os.path.join(base_path, 'cert', 'autorunlab.pem')
 
 def setup_logger(process_id: str = None):
     logger = setup_logging('background_remover')

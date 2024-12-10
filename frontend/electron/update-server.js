@@ -75,7 +75,7 @@ app.get("/update/:platform/:version", (req, res) => {
   });
 
   const serverUrl =
-    process.env.UPDATE_SERVER_URL || "http://updateServer.orb.local";
+    process.env.UPDATE_SERVER_URL || "https://update.autorunlab.com/download";
 
   // 플랫폼별 응답 구성
   const updateInfo = {
@@ -84,8 +84,8 @@ app.get("/update/:platform/:version", (req, res) => {
       {
         url:
           platform === "darwin"
-            ? `${serverUrl}/TheOneMindUtility-${latestVersion}-arm64.dmg`
-            : `${serverUrl}/TheOneMindUtility-${latestVersion}-setup.exe`,
+            ? `${serverUrl}/AutoRunLab-${latestVersion}-arm64.dmg`
+            : `${serverUrl}/AutoRunLab-${latestVersion}-setup.exe`,
         sha512:
           platform === "darwin"
             ? "c36bdf110d2122b6e742d5f684eb2b1ef64aeefe9d6699981c072daa1af5ad70aece8f6d66b3c86a5af4ea4ec3c5850f6e78fb8f5755e3ae21f3fb84f3a69dbf"
@@ -95,8 +95,8 @@ app.get("/update/:platform/:version", (req, res) => {
     ],
     path:
       platform === "darwin"
-        ? `TheOneMindUtility-${latestVersion}-arm64.dmg`
-        : `TheOneMindUtility-${latestVersion}-setup.exe`,
+        ? `AutoRunLab-${latestVersion}-arm64.dmg`
+        : `AutoRunLab-${latestVersion}-setup.exe`,
     sha512:
       platform === "darwin"
         ? "c36bdf110d2122b6e742d5f684eb2b1ef64aeefe9d6699981c072daa1af5ad70aece8f6d66b3c86a5af4ea4ec3c5850f6e78fb8f5755e3ae21f3fb84f3a69dbf"

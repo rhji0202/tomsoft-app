@@ -13,7 +13,7 @@ def setup_logging(logger_name: str):
         logging.Logger: 설정된 로거 인스턴스
     """
     # .theonemind 폴더 생성
-    log_dir = os.path.expanduser('~/.theonemind')
+    log_dir = os.path.expanduser('~/.autorunlab')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     

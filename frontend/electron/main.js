@@ -225,7 +225,7 @@ ipcMain.handle("check-for-updates", async (event) => {
 function initAutoUpdater() {
   // macOS 앱 번들 ID 설정 수정
   if (process.platform === "darwin") {
-    app.setAppUserModelId("com.autorunlab.utility");
+    app.setAppUserModelId("com.autorunlab");
   }
 
   autoUpdater.autoDownload = false;
@@ -239,13 +239,13 @@ function initAutoUpdater() {
 
   // 업데이트 설정
   const server =
-    process.env.UPDATE_SERVER_URL || "http://updateServer.orb.local";
+    process.env.UPDATE_SERVER_URL || "https://update.autorunlab.com/download";
 
   // macOS의 경우 업데이트 캐시 디렉토리 확인 및 생성
   if (process.platform === "darwin") {
     const updateCachePath = path.join(
       app.getPath("temp"),
-      "com.autorunlab.utility.ShipIt"
+      "com.autorunlab.ShipIt"
     );
 
     try {
@@ -263,11 +263,11 @@ function initAutoUpdater() {
   autoUpdater.setFeedURL({
     provider: "generic",
     url: server,
-    updaterCacheDirName: "com.autorunlab.utility-updater",
+    updaterCacheDirName: "com.autorunlab-updater",
     channel: "latest",
-    appId: "com.autorunlab.utility",
+    appId: "com.autorunlab",
     requestHeaders: {
-      "User-Agent": "TheOneMindUtility",
+      "User-Agent": "AutoRunLab",
     },
   });
 

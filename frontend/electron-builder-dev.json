@@ -12,18 +12,10 @@
   "directories": {
     "output": "release"
   },
-  "publish": [
-    {
-      "provider": "generic",
-      "url": "https://update.autorunlab.com/download",
-      "channel": "latest",
-      "updaterCacheDirName": "com.autorunlab-updater"
-    }
-  ],
+  "publish": null,
   "win": {
     "target": ["nsis"],
-    "icon": "src/assets/logo.png",
-    "artifactName": "${productName}-${version}-${arch}.${ext}"
+    "icon": "src/assets/logo.png"
   },
   "mac": {
     "target": ["dmg", "zip"],

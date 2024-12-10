@@ -1,9 +1,9 @@
 {
-  "name": "TheOneMindUtility",
+  "name": "AutoRunLab",
   "private": true,
   "version": "0.1.2",
   "author": "TheOneMind",
-  "description": "TheOneMindUtility",
+  "description": "AutoRunLab",
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite --port 51733",
@@ -11,9 +11,8 @@
     "electron:dev": "cross-env NODE_ENV=development concurrently \"vite --port 51733\" \"wait-on tcp:51733 && electron . --verbose\"",
     "electron:build": "vite build && electron-builder",
     "electron:build:publish": "vite build && electron-builder --publish always",
-    "electron:build:win": "vite build && electron-builder --win",
-    "electron:build:mac": "vite build && electron-builder --mac",
-    "electron:build:linux": "vite build && electron-builder --linux",
+    "electron:build:win": "vite build && electron-builder --config electron-builder.json --win",
+    "electron:build:mac": "vite build && electron-builder --config electron-builder.json --mac",
     "preview": "vite preview --port 51733"
   },
   "dependencies": {
